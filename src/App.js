@@ -1,4 +1,4 @@
-import { Component } from "react";
+import { useState, useEffect } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { fetchImages, popularImages } from "./Api/Api";
@@ -10,114 +10,129 @@ import Modal from "./components/Modal";
 
 import "./App.css";
 
-export default class App extends Component {
-  state = {
-    images: [],
-    status: "idle",
-    fullImg: "null",
-    showModal: false,
-    page: 1,
-    searchValue: "",
-  };
+const Status = {
+  IDLE: "idle",
+  PENDING: "pending",
+  RESOLVED: "resolved",
+  REJECTED: "rejected",
+};
 
-  async componentDidMount() {
-    const { page } = this.state;
-    const images = await popularImages(page);
+export default function App() {
+  const [images, setImages] = useState([]);
+  const [status, setStatus] = useState(Status.IDLE);
+  const [fullImg, setFullImg] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [page, setPage] = useState(1);
+  const [searchValue, setSearchValue] = useState("");
 
-    this.setState({
-      images,
-      status: "resolved",
-    });
-  }
+  useEffect(() => {
+    if (!searchValue) {
+      popularImages(page)
+        .then((images) => {
+          if (!images.length) {
+            return toast.error(
+              "No images for you request, please enter more specific query"
+            );
+          }
+          setImages((prevState) => [...prevState, ...images]);
+          setStatus(Status.RESOLVED);
+        })
+        .catch((error) => {
+          setStatus(Status.REJECTED);
+        })
+        .finally(() => {
+          if (page > 1) {
+            window.scrollTo({
+              top: document.documentElement.scrollHeight,
+              behavior: "smooth",
+            });
+          }
+        });
+      return;
+    }
 
-  async componentDidUpdate(prevProps, prevState) {
-    const { searchValue, page } = this.state;
+    setStatus(Status.PENDING);
 
-    if (prevState.searchValue !== searchValue || prevState.page !== page) {
-      try {
-        this.setState({ status: "pending" });
-        const images = await fetchImages(searchValue, page);
-
-        if (images.length === 0) {
+    fetchImages(searchValue, page)
+      .then((images) => {
+        if (!images.length) {
           return toast.error(
             "No images for you request, please enter more specific query"
           );
         }
-
-        this.setState((prevState) => ({
-          images: [...prevState.images, ...images],
-          status: "resolved",
-        }));
-
-        if (this.state.page > 1) {
+        setImages((prevState) => [...prevState, ...images]);
+        setStatus(Status.RESOLVED);
+      })
+      .catch((error) => {
+        setStatus(Status.REJECTED);
+      })
+      .finally(() => {
+        if (page > 1) {
           window.scrollTo({
             top: document.documentElement.scrollHeight,
             behavior: "smooth",
           });
         }
-      } catch (error) {
-        this.setState({ error, status: "rejected" });
-      }
+      });
+  }, [searchValue, page]);
+
+  const handleFormSubmit = (newSearchValue) => {
+    if (searchValue !== newSearchValue) {
+      setSearchValue(newSearchValue);
+      setImages([]);
+      setPage(1);
     }
+  };
+
+  const toggleModal = (largeImageURL) => {
+    if (!showModal) {
+      setShowModal(!showModal);
+      setFullImg(largeImageURL);
+    }
+  };
+
+  const loadMore = () => {
+    setPage((prevPage) => prevPage + 1);
+  };
+
+  if (status === Status.IDLE) {
+    return (
+      <>
+        <ToastContainer autoClose={3000} />
+        <Searchbar onSubmit={handleFormSubmit} />
+      </>
+    );
   }
-
-  handleFormSubmit = (searchValue) => {
-    if (this.state.searchValue !== searchValue) {
-      this.setState({ searchValue, images: [], page: 1 });
-    }
-  };
-
-  toggleModal = (largeImageURL) => {
-    this.setState(({ showModal }) => ({
-      showModal: !showModal,
-      fullImg: largeImageURL,
-    }));
-  };
-
-  onCloseModal = () => {
-    this.setState({ fullImg: null });
-  };
-
-  loadMore = () => {
-    this.setState((prevState) => ({
-      page: prevState.page + 1,
-    }));
-  };
-
-  render() {
-    const { status, images, fullImg, showModal } = this.state;
-
-    if (status === "idle") {
-      return (
-        <>
-          <ToastContainer autoClose={3000} />
-          <Searchbar onSubmit={this.handleFormSubmit} />
-        </>
-      );
-    }
-    if (status === "pending") {
-      return (
-        <>
-          <ToastContainer autoClose={3000} />
-          <Searchbar onSubmit={this.handleFormSubmit} />
-          <Loader />;
-        </>
-      );
-    }
-    if (status === "resolved") {
-      return (
-        <div className='App'>
-          <Searchbar onSubmit={this.handleFormSubmit} />
-          <ImageGallery images={images} onClick={this.toggleModal} />
-          <Button loadMore={this.loadMore} images={images} />
-          {showModal && <Modal src={fullImg} onClose={this.toggleModal} />}
-        </div>
-      );
-    }
-    if (status === "rejected") {
-      return toast.error(
-        "No images for you request, please enter more specific query"
-      );
-    }
+  if (status === Status.PENDING) {
+    return (
+      <>
+        <ToastContainer autoClose={3000} />
+        <Searchbar onSubmit={handleFormSubmit} />
+        <Loader />;
+      </>
+    );
+  }
+  if (status === Status.RESOLVED) {
+    return (
+      <div className='App'>
+        <Searchbar onSubmit={handleFormSubmit} />
+        <ImageGallery images={images} onClick={toggleModal} />
+        <Button loadMore={loadMore} images={images} />
+        {showModal && (
+          <Modal
+            src={fullImg}
+            onClose={() => {
+              setFullImg(null);
+              setShowModal(false);
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+  if (status === Status.REJECTED) {
+    return toast.error(
+      "No images for you request, please enter more specific query"
+    );
   }
 }
