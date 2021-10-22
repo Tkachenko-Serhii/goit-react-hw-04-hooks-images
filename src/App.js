@@ -118,6 +118,7 @@ export default function App() {
         <Searchbar onSubmit={handleFormSubmit} />
         <ImageGallery images={images} onClick={toggleModal} />
         <Button loadMore={loadMore} images={images} />
+        <ToastContainer autoClose={3000} />
         {showModal && (
           <Modal
             src={fullImg}
