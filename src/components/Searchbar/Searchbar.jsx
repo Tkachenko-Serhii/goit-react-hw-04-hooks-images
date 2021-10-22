@@ -1,48 +1,44 @@
-import { Component } from "react";
+import { useState } from "react";
 import { toast } from "react-toastify";
 import PropTypes from "prop-types";
 import "react-toastify/dist/ReactToastify.css";
 import s from "./Searchbar.module.css";
 
-export default class Searchbar extends Component {
-  state = {
-    searchValue: "",
+export default function Searchbar({ onSubmit }) {
+  const [value, setValue] = useState("");
+
+  const handleSearchValueChange = (e) => {
+    setValue(e.currentTarget.value.toLowerCase());
   };
 
-  handleSearchValueChange = (e) => {
-    this.setState({ searchValue: e.currentTarget.value.toLowerCase() });
-  };
-
-  onSubmit = (e) => {
+  const formSubmit = (e) => {
     e.preventDefault();
-    if (this.state.searchValue.trim() === "") {
+    if (value.trim() === "") {
       toast.error("Enter your search query!");
       return;
     }
-
-    this.props.onSubmit(this.state.searchValue);
-    this.setState({ searchValue: "" });
+    onSubmit(value);
+    setValue("");
   };
 
-  render() {
-    return (
-      <header className={s.searchbar}>
-        <form className={s.form} onSubmit={this.onSubmit}>
-          <button type='submit' className={s.button}>
-            <span className={s.label}>Search</span>
-          </button>
-          <input
-            className={s.input}
-            type='text'
-            autoComplete='off'
-            autoFocus
-            placeholder='Search images and photos'
-            onChange={this.handleSearchValueChange}
-          />
-        </form>
-      </header>
-    );
-  }
+  return (
+    <header className={s.searchbar}>
+      <form className={s.form} onSubmit={formSubmit}>
+        <button type='submit' className={s.button}>
+          <span className={s.label}>Search</span>
+        </button>
+        <input
+          className={s.input}
+          type='text'
+          autoComplete='off'
+          autoFocus
+          value={value}
+          placeholder='Search images and photos'
+          onChange={handleSearchValueChange}
+        />
+      </form>
+    </header>
+  );
 }
 
 Searchbar.propTypes = {
