@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ToastContainer, toast } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { fetchImages, popularImages } from "./Api/Api";
 import Searchbar from "./components/Searchbar";
@@ -95,18 +95,9 @@ export default function App() {
     setPage((prevPage) => prevPage + 1);
   };
 
-  if (status === Status.IDLE) {
-    return (
-      <>
-        <ToastContainer autoClose={3000} />
-        <Searchbar onSubmit={handleFormSubmit} />
-      </>
-    );
-  }
   if (status === Status.PENDING) {
     return (
       <>
-        <ToastContainer autoClose={3000} />
         <Searchbar onSubmit={handleFormSubmit} />
         <Loader />;
       </>
@@ -118,7 +109,6 @@ export default function App() {
         <Searchbar onSubmit={handleFormSubmit} />
         <ImageGallery images={images} onClick={toggleModal} />
         <Button loadMore={loadMore} images={images} />
-        <ToastContainer autoClose={3000} />
         {showModal && (
           <Modal
             src={fullImg}
@@ -136,4 +126,10 @@ export default function App() {
       "No images for you request, please enter more specific query"
     );
   }
+
+  return (
+    <>
+      <Searchbar onSubmit={handleFormSubmit} />
+    </>
+  );
 }
